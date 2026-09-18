@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 export default function ProductList({ selectedIds, onToggle }) {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const [search, setSearch] = useState('')
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
 
   useEffect(() => {
     let isMounted = true
@@ -31,29 +35,94 @@ export default function ProductList({ selectedIds, onToggle }) {
     }
   }, [])
 
+  const filteredProducts = useMemo(() => {
+    const term = search.trim().toLowerCase()
+    const min = minPrice === '' ? -Infinity : Number(minPrice)
+    const max = maxPrice === '' ? Infinity : Number(maxPrice)
+
+    return products.filter((product) => {
+      const matchesName = term === '' || product.name.toLowerCase().includes(term)
+      const price = Number(product.price)
+      const matchesPrice = price >= min && price <= max
+      return matchesName && matchesPrice
+    })
+  }, [products, search, minPrice, maxPrice])
+
   if (loading) return <p>Loading products...</p>
   if (error) return <p className="error">Failed to load products: {error}</p>
-  if (products.length === 0) return <p>No products available yet.</p>
 
   return (
-    <div className="product-grid">
-      {products.map((product) => {
-        const isSelected = selectedIds.has(product.id)
-        return (
+    <div>
+      <div className="filter-bar">
+        <label className="filter-field filter-search">
+          Search by name
+          <input
+            type="text"
+            placeholder="e.g. mug, wallet..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </label>
+        <label className="filter-field">
+          Min price (₪)
+          <input
+            type="number"
+            min="0"
+            placeholder="0"
+            value={minPrice}
+            onChange={(e) => setMinPrice(e.target.value)}
+          />
+        </label>
+        <label className="filter-field">
+          Max price (₪)
+          <input
+            type="number"
+            min="0"
+            placeholder="Any"
+            value={maxPrice}
+            onChange={(e) => setMaxPrice(e.target.value)}
+          />
+        </label>
+        {(search || minPrice !== '' || maxPrice !== '') && (
           <button
-            key={product.id}
             type="button"
-            className={`product-card${isSelected ? ' selected' : ''}`}
-            onClick={() => onToggle(product)}
+            className="filter-clear"
+            onClick={() => {
+              setSearch('')
+              setMinPrice('')
+              setMaxPrice('')
+            }}
           >
-            {isSelected && <span className="selected-badge">In cart</span>}
-            {product.image_url && <img src={product.image_url} alt={product.name} />}
-            <h3>{product.name}</h3>
-            {product.description && <p className="description">{product.description}</p>}
-            <p className="price">₪{Number(product.price).toFixed(2)}</p>
+            Clear filters
           </button>
-        )
-      })}
+        )}
+      </div>
+
+      {products.length === 0 ? (
+        <p>No products available yet.</p>
+      ) : filteredProducts.length === 0 ? (
+        <p>No products match your filters.</p>
+      ) : (
+        <div className="product-grid">
+          {filteredProducts.map((product) => {
+            const isSelected = selectedIds.has(product.id)
+            return (
+              <button
+                key={product.id}
+                type="button"
+                className={`product-card${isSelected ? ' selected' : ''}`}
+                onClick={() => onToggle(product)}
+              >
+                {isSelected && <span className="selected-badge">In cart</span>}
+                {product.image_url && <img src={product.image_url} alt={product.name} />}
+                <h3>{product.name}</h3>
+                {product.description && <p className="description">{product.description}</p>}
+                <p className="price">₪{Number(product.price).toFixed(2)}</p>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
