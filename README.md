@@ -60,4 +60,5 @@ order_items (id, order_id -> orders.id, product_id -> products.id, quantity)
 
 ## AI usage
 
-Built with Claude (Anthropic) as a pair-programming assistant throughout — architecture decisions, schema design, component code, styling, debugging, and the Supabase Auth/RLS security work above. Full conversation: https://claude.ai/code/session_013PHgNefnQan72t2PKqqC3L
+- **Claude (Anthropic)** — main pair-programming assistant throughout: architecture decisions, schema design, component code, styling, debugging, and the Supabase Auth/RLS security work above. Full conversation: https://claude.ai/code/session_013PHgNefnQan72t2PKqqC3L
+- **ChatGPT** — full conversation: https://chatgpt.com/share/6aacf849-21e4-83ed-b62e-5d56f9ca1c8d
