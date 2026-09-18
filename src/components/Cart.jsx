@@ -63,11 +63,22 @@ export default function Cart({ items, onQuantityChange, onRemove, onOrderPlaced 
   }
 
   if (items.length === 0) {
-    return <p className="hint">Select one or more products above to start an order.</p>
+    return (
+      <div className="cart-empty">
+        <p className="hint">Add products to see your order summary here.</p>
+      </div>
+    )
   }
 
   return (
     <form className="order-form" onSubmit={handleSubmit}>
+      <div className="cart-summary">
+        <span className="cart-summary-count">
+          {items.length} item{items.length > 1 ? 's' : ''}
+        </span>
+        <span className="cart-summary-total">₪{total.toFixed(2)}</span>
+      </div>
+
       <ul className="cart-list">
         {items.map(({ product, quantity }) => (
           <li key={product.id} className="cart-item">
@@ -89,8 +100,6 @@ export default function Cart({ items, onQuantityChange, onRemove, onOrderPlaced 
           </li>
         ))}
       </ul>
-
-      <p className="cart-total">Total: ₪{total.toFixed(2)}</p>
 
       <label>
         Full name
