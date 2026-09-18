@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { sendOrderConfirmationEmail } from '../lib/emailClient'
 
 export default function Cart({ items, onQuantityChange, onRemove, onOrderPlaced }) {
   const [customerName, setCustomerName] = useState('')
@@ -42,6 +43,22 @@ export default function Cart({ items, onQuantityChange, onRemove, onOrderPlaced 
     if (rpcError) {
       setError(rpcError.message)
       return
+    }
+
+    // Best-effort confirmation email — the order is already saved at this
+    // point, so a failure here must not undo or hide the successful order.
+    try {
+      await sendOrderConfirmationEmail({
+        orderId,
+        customerName: customerName.trim(),
+        customerEmail: trimmedEmail,
+        phone: phone.trim(),
+        shippingAddress: shippingAddress.trim(),
+        items,
+        total,
+      })
+    } catch (emailErr) {
+      console.error('Failed to send confirmation email:', emailErr)
     }
 
     setCustomerName('')
