@@ -21,37 +21,26 @@ export default function Cart({ items, onQuantityChange, onRemove, onOrderPlaced 
     setSubmitting(true)
     setError(null)
 
-    // 1. Create the order "header" (who placed it, where to ship, when)
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        customer_name: customerName.trim(),
-        customer_email: customerEmail.trim(),
-        phone: phone.trim(),
-        shipping_address: shippingAddress.trim(),
-      })
-      .select()
-      .single()
+    const trimmedEmail = customerEmail.trim()
 
-    if (orderError) {
-      setSubmitting(false)
-      setError(orderError.message)
-      return
-    }
-
-    // 2. Create one order_items row per product in the cart
-    const orderItems = items.map((item) => ({
-      order_id: order.id,
-      product_id: item.product.id,
-      quantity: item.quantity,
-    }))
-
-    const { error: itemsError } = await supabase.from('order_items').insert(orderItems)
+    // Anonymous customers place orders through a single controlled RPC
+    // (place_order) instead of inserting into orders/order_items directly —
+    // those tables are no longer readable/writable by the public anon key.
+    const { data: orderId, error: rpcError } = await supabase.rpc('place_order', {
+      p_customer_name: customerName.trim(),
+      p_customer_email: trimmedEmail,
+      p_phone: phone.trim(),
+      p_shipping_address: shippingAddress.trim(),
+      p_items: items.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+      })),
+    })
 
     setSubmitting(false)
 
-    if (itemsError) {
-      setError(itemsError.message)
+    if (rpcError) {
+      setError(rpcError.message)
       return
     }
 
@@ -59,7 +48,7 @@ export default function Cart({ items, onQuantityChange, onRemove, onOrderPlaced 
     setCustomerEmail('')
     setPhone('')
     setShippingAddress('')
-    onOrderPlaced?.({ orderId: order.id, customerEmail: order.customer_email })
+    onOrderPlaced?.({ orderId, customerEmail: trimmedEmail })
   }
 
   if (items.length === 0) {

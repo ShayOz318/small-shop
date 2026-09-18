@@ -1,13 +1,32 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import ProductList from './components/ProductList'
 import Cart from './components/Cart'
 import OrdersView from './components/OrdersView'
+import Login from './components/Login'
+import { supabase } from './lib/supabaseClient'
 import './App.css'
 
 function App() {
   const [view, setView] = useState('shop') // 'shop' | 'orders'
   const [cart, setCart] = useState({}) // { [productId]: { product, quantity } }
   const [confirmation, setConfirmation] = useState(null)
+  const [session, setSession] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setAuthLoading(false)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
+
+    return () => {
+      listener.subscription.unsubscribe()
+    }
+  }, [])
 
   function toggleProduct(product) {
     setCart((prev) => {
@@ -103,8 +122,22 @@ function App() {
         </>
       ) : (
         <section>
-          <h2>All orders</h2>
-          <OrdersView />
+          <h2>Business orders</h2>
+          {authLoading ? (
+            <p>Checking session...</p>
+          ) : session ? (
+            <>
+              <div className="business-bar">
+                <span>Signed in as {session.user.email}</span>
+                <button type="button" onClick={() => supabase.auth.signOut()}>
+                  Log out
+                </button>
+              </div>
+              <OrdersView />
+            </>
+          ) : (
+            <Login />
+          )}
         </section>
       )}
     </div>
